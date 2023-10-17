@@ -97,5 +97,6 @@ if __name__ == '__main__':
     plt.ylabel('Mean Square Error')
     plt.legend(['Agent 1', 'Agent 2', 'Convergence Boundary:{value}'.format(value=algo.converge_bound)], loc='best')
     print(algo.value)
+    plt.savefig('Ch6\Value Iteration MSE Convergence.png')
     plt.show()
     
