@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6249075f9fe9f789dd7e16a1b0f00a64b5175021bcecb611f5c2219acd7b8333"
+            "sha256": "5e07c57eaba56a1dc99fbdf9ec58445fc68106a449a75c195ccac4b10c82d687"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,14 @@
         ]
     },
     "default": {
+        "cloudpickle": {
+            "hashes": [
+                "sha256:246ee7d0c295602a036e86369c77fecda4ab17b506496730f2f576d9016fd9c7",
+                "sha256:996d9a482c6fb4f33c1a35335cf8afd065d2a56e973270364840712d9131a882"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==3.0.0"
+        },
         "contourpy": {
             "hashes": [
                 "sha256:059c3d2a94b930f4dafe8105bcdc1b21de99b30b51b5bce74c753686de858cb6",
@@ -129,6 +137,20 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==4.43.1"
+        },
+        "gym": {
+            "hashes": [
+                "sha256:e0d882f4b54f0c65f203104c24ab8a38b039f1289986803c7d02cdbe214fbcc4"
+            ],
+            "index": "pypi",
+            "version": "==0.26.2"
+        },
+        "gym-notices": {
+            "hashes": [
+                "sha256:ad25e200487cafa369728625fe064e88ada1346618526102659b4640f2b4b911",
+                "sha256:e5f82e00823a166747b4c2a07de63b6560b1acb880638547e0cabf825a01e463"
+            ],
+            "version": "==0.0.8"
         },
         "kiwisolver": {
             "hashes": [

@@ -21,6 +21,14 @@ class NormalFormGame:
             index += (joint_action[i]*pow(self.n_actions[0],self.n_agents-i-1))
         return index
     
+    def unflatten_joint_action(self, joint_action):
+        actions = []
+        for i in range(self.n_agents):
+            i_action = joint_action//pow(self.n_actions[0], self.n_agents-i-1)
+            joint_action -= (i_action*pow(self.n_actions[0],self.n_agents-i-1))
+            actions.append(i_action)
+        return np.array(actions, dtype=int)
+    
     def step(self, joint_action:np.ndarray|tuple):
         return self.joint_reward(joint_action)
     
@@ -85,9 +93,11 @@ class StochasticGame(NormalFormGame):
         index = self.flatten_joint_action(joint_action)
         next_state = np.random.choice([i for i in range(self.n_states)], p=self.state_transition_matrix[self.state, index])
         self.state = next_state
+        is_terminated = False
         if self.terminal_state is not None:
             is_terminated = next_state in self.terminal_state
-        return next_state, joint_reward, is_terminated
+        
+        return next_state, joint_reward, is_terminated, None
 
 
 # if __name__ == "__main__":
