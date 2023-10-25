@@ -32,6 +32,7 @@ class JointActionLearning():
         self.max_steps = (int)(1/(1-self.gamma))
         self.n_episode = config['n_episode']
         self.update_epsilon = config['update_epsilon']
+        self.update_lr = config['update_lr']
         self.solutions = [None for i in range(self.env.n_states)]
 
     def get_policy(self, state):
@@ -45,23 +46,23 @@ class JointActionLearning():
     def value(self, agent, state):
         pass
 
-    def make_joint_action(self, state):
+    def make_joint_action(self, state, epsilon):
         pass
 
     def learn(self):
         # Initialize Q-values
         self.Q = np.zeros((self.n_agents, self.n_states, self.n_joint_actions))
-        
+        epsilon = self.epsilon
         # Repeat for every episode
         for episode in range(self.n_episode):
             is_done = False
             step = 0
             state = self.env.reset()
-            #print("Episode {episode}:".format(episode=episode))
+            lr = self.lr
             while (not is_done) and ((self.env.terminal_state is None) and (step < self.max_steps)):
-                #print("---Step {step}".format(step=step))
+
                 # Choose action
-                joint_action = self.make_joint_action(state)
+                joint_action = self.make_joint_action(state, epsilon)
 
                 # Observe joint action, rewards, and next state
                 next_state, joint_reward, is_done, info= self.env.step(joint_action)
@@ -69,18 +70,20 @@ class JointActionLearning():
                 
                 # Update Q-values for all agents
                 for j in range(self.n_agents):
-                    self.Q[j, state, joint_action] += self.lr *\
+                    self.Q[j, state, joint_action] += lr *\
                                                     (joint_reward[j]+\
                                                     self.gamma*self.value(j, next_state)-\
                                                     self.Q[j, state, joint_action])
                 # Observe next state
                 state = next_state
                 step += 1
+                if self.update_lr is not None:
+                    lr = self.update_lr(self.lr, step)
             if self.update_epsilon is not None:
-                self.epsilon = self.update_epsilon(episode)
+                epsilon = self.update_epsilon(self.epsilon, episode)
         return self.Q
     
-    def evaluate(self, optimal:Policy, rand=False):
+    def evaluate(self, optimal:Policy):
         n_eval_epi = 100
         colors = ['aqua', 'blue', 'green', 'yellow', 'darkgreen', 'lightyellow', 'orange']
         # Correlated Q-learning
@@ -90,6 +93,10 @@ class JointActionLearning():
         for s in range(self.n_states):
             for a in range(self.n_joint_actions):
                 joint_Q[s,a] = np.sum(self.Q[:,s,a])
+        # Create policy based on joint action value
+        policy = []
+        for s in range(self.n_states):
+            policy.append(Policy(self.n_agents, self.n_actions, distribution=np.squeeze(joint_Q[s]/np.sum(joint_Q[s]))))
 
         for episode in range(n_eval_epi):
             is_done = False
@@ -97,13 +104,9 @@ class JointActionLearning():
             state = self.env.reset()
             e_reward = 0.0
             while (not is_done) and ((self.env.terminal_state is None) and (step < self.max_steps)):
-                #print("---Step {step}".format(step=step))
                 # Choose best action
-                if rand and np.random.rand() < self.epsilon:
-                    joint_action = optimal[state].sample_action()
-                    joint_action = self.env.unflatten_joint_action(joint_action)
-                else:
-                    joint_action = (int)(np.argmax(joint_Q[state]))
+                joint_action = policy[state].best_action()
+                joint_action = self.env.unflatten_joint_action(joint_action)
                 
                 # Observe joint action, rewards, and next state
                 next_state, joint_reward, is_done, info= self.env.step(joint_action)
@@ -124,7 +127,7 @@ class JointActionLearning():
             state = self.env.reset()
             e_reward = 0.0
             while (not is_done) and ((self.env.terminal_state is None) and (step < self.max_steps)):
-                #print("---Step {step}".format(step=step))
+
                 # Choose best action
                 joint_action = optimal[state].best_action()
                 joint_action = self.env.unflatten_joint_action(joint_action)
@@ -142,21 +145,21 @@ class JointActionLearning():
             
         plt.plot(corrq, color=colors[0])
         plt.plot(opt, color=colors[1])
-        plt.plot([0], color=colors[2])
-        plt.plot([0], color=colors[3])
+        plt.plot([np.mean(corrq) for _ in range(len(corrq))], color=colors[2], linestyle='--')
+        plt.plot([np.mean(opt) for _ in range(len(opt))], color=colors[3], linestyle='--')
         plt.xlabel('Episode')
         plt.ylabel('Total Reward')
-        plt.legend(['Correlated Q-learning', 'Optimal Polciy', 'Average of optimal policy:{value}'.format(value=np.mean(opt)), 'Average of CorrQ:{value}'.format(value=np.mean(corrq))], loc='best')
-        #plt.savefig('Ch6\Value Iteration MSE Convergence.png')
+        plt.legend(['Correlated Q-learning', 'Optimal Polciy', 'Average of CoorQ:{value}'.format(value=np.mean(corrq)), 'Average of optimal policy:{value}'.format(value=np.mean(opt))], loc='best')
         plt.show()
 
 class CorrelatedQlearning(JointActionLearning):
     def __init__(self, env:StochasticGame, config=
                  {'epsilon':0.7,
-                  'lr':1e-3,
-                  'gamma':0.9,
+                  'lr':1e-6,
+                  'gamma':0.95,
                   'n_episode':1000,
                   'update_epsilon':None,
+                  'update_lr':None,
                   }) -> None:
         super().__init__(env, config)
     
@@ -196,7 +199,7 @@ class CorrelatedQlearning(JointActionLearning):
                       A_ub=lhs_ineq, b_ub=rhs_ineq,
                       A_eq=lhs_eq, b_eq=rhs_eq,
                       bounds=bound)
-        
+
         joint_actions_distribution = opt.x
         return Policy(n_agents=self.n_agents, n_actions=self.n_actions, distribution=joint_actions_distribution)
     
@@ -209,10 +212,10 @@ class CorrelatedQlearning(JointActionLearning):
                 max = sum    
         return max
 
-    def make_joint_action(self, state):
+    def make_joint_action(self, state, epsilon):
         joint_action = []
         policy = self.get_policy(state)
-        if np.random.rand() < self.epsilon:
+        if np.random.rand() < epsilon:
             for i in range(self.n_agents):
                 action = policy.sample_action(i)
                 joint_action.append(action)
@@ -258,13 +261,28 @@ if __name__ == '__main__':
         state_transition_matrix=st,
         #initial_state=nosde_init,
     )
-    
+    # Config
+    def update_lr(lr, step):
+        return lr*pow(0.99999954, (int)(step))
+    config={'epsilon':0.2,
+            'lr':1.0,
+            'gamma':0.95,
+            'n_episode':1000,
+            'update_epsilon':None,
+            'update_lr':update_lr,
+            }
+    # Learn Chicken Game
     algo = CorrelatedQlearning(env=chicken_game)
     joint_action_value = algo.learn()
-    algo.evaluate([algo.slove_game(state=0)], rand=False)
+    plt.title("Optimality: Coorelated Equilibrium")
+    algo.evaluate([algo.slove_game(state=0)])
 
+    # # Learn No Stationary Deterministic Equilibrium Game
     algo = CorrelatedQlearning(env=nosde)
     joint_action_value = algo.learn()
+    plt.title("Optimality: Correlated Equilibrium")
+    algo.evaluate([algo.slove_game(s) for s in range(algo.n_states)])
+    plt.title("Optimality: Nash Equilibrium")
     best_distribution = [1/3*7/12, 1/3*5/12, 2/3*7/12, 2/3*5/12]
     algo.evaluate([Policy(n_agents=2, n_actions=[2, 2], distribution=best_distribution),
-                   Policy(n_agents=2, n_actions=[2, 2], distribution=best_distribution)], rand=False)
+                   Policy(n_agents=2, n_actions=[2, 2], distribution=best_distribution)])
