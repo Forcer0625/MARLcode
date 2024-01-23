@@ -3,11 +3,32 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://download.pytorch.org/whl/"
+verify_ssl = true
+name = "downloadpytorch-977"
+
+[[source]]
+url = "https://download.pytorch.org/whl/"
+verify_ssl = true
+name = "downloadpytorch-959"
+
+[[source]]
+url = "https://download.pytorch.org/whl/"
+verify_ssl = true
+name = "downloadpytorWch-700"
+
 [packages]
 numpy = "*"
 matplotlib = "*"
 scipy = "*"
-gym = "*"
+torch = {version = "==2.0.1+cu117", index = "downloadpytorch-977"}
+torchvision = {version = "==0.15.2+cu117", index = "downloadpytorch-959"}
+torchaudio = {version = "==2.0.2+cu117", index = "downloadpytorch-700"}
+wheel = "*"
+setuptools = "*"
+pip = "*"
+gymnasium = {extras = ["accept-rom-license"], version = "*"}
 
 [dev-packages]
 
