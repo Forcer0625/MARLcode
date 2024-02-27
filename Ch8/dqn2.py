@@ -1,9 +1,6 @@
 import math
 import random
-import matplotlib
-import matplotlib.pyplot as plt
 from collections import namedtuple, deque
-from itertools import count
 
 import torch
 import torch.nn as nn
@@ -67,6 +64,7 @@ class DQN():
         self.memory = ReplayMemory(10000)
 
         self.steps_done = 0
+        self.record = []
 
     def store_transiton(self, state, action, next_state, reward, done):
         if done:
@@ -149,4 +147,5 @@ class DQN():
         torch.save(self.policy_net.state_dict(), path)
     
     def load(self, path):
-        self.policy_net = torch.load(path)
+        self.policy_net = DeepQNetwork(self.n_observations, self.layer_dims[0], self.layer_dims[1], self.n_actions).to(self.device)
+        self.policy_net = (torch.load(path, map_location=self.device))
