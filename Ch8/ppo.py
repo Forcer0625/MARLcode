@@ -244,8 +244,8 @@ if __name__ == '__main__':
     }
     agent = PPO(env, config)
 
-    if task == 'train':
-        agent.learn(total_timesteps=500, render=True)
+    if task == 'play':
+        agent.learn(total_timesteps=1000, render=True)
         agent.save('Ch8\LunarLander_ppo')
     else:
         agent.load('Ch8\LunarLander_ppo')
